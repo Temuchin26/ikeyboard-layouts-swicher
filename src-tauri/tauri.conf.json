@@ -6,12 +6,18 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "language-swicher",
+    "productName": "language_swicher",
     "version": "0.0.0"
   },
   "tauri": {
     "allowlist": {
-      "all": true
+      "window": {
+        "show": true,
+        "hide": true
+      },
+      "globalShortcut": {
+        "all": true
+      }
     },
     "bundle": {
       "active": true,
@@ -28,7 +34,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.tauri.dev",
+      "identifier": "com.languageSwitcher.dev",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
@@ -39,7 +45,7 @@
       },
       "resources": [],
       "shortDescription": "",
-      "targets": "all",
+      "targets": "deb",
       "windows": {
         "certificateThumbprint": null,
         "digestAlgorithm": "sha256",
@@ -54,11 +60,16 @@
     },
     "windows": [
       {
-        "fullscreen": false,
-        "height": 600,
-        "resizable": true,
-        "title": "language-swicher",
-        "width": 800
+        "center": true,
+        "visible": false,
+        "title": "language_swicher",
+        "minWidth": 200,
+        "minHeight": 200,
+        "height": 250,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "transparent": true
       }
     ]
   }
