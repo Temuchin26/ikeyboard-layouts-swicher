@@ -1,6 +1,5 @@
-use once_cell::sync::OnceCell;
 use std::process::Command;
-use std::sync::{Mutex, MutexGuard};
+use std::sync::MutexGuard;
 
 pub fn apply_layouts(joined_layouts: MutexGuard<&str>) {
     Command::new("sh")

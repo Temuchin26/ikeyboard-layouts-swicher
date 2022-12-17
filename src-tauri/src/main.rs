@@ -2,9 +2,9 @@
     all(not(debug_assertions), target_os = "windows"),
     windows_subsystem = "windows"
 )]
-use once_cell::sync::OnceCell;
 use rdev::{listen, Event, EventType, Key};
 use serde;
+use std::sync::Arc;
 use std::sync::Mutex;
 use tauri::{GlobalShortcutManager, Manager};
 
@@ -16,36 +16,29 @@ struct Payload {
     currentLayout: String,
 }
 
-static LAYOUTS: OnceCell<Mutex<Vec<&str>>> = OnceCell::new();
-static CURRENT_LAYOUT: OnceCell<Mutex<&str>> = OnceCell::new();
+
+
+
 
 fn main() {
-    LAYOUTS
-        .set(Mutex::new(vec!["us", "ru", "ua"]))
-        .expect("Couldn't set LAYOUTS");
-    CURRENT_LAYOUT
-        .set(Mutex::new("us"))
-        .expect("Couldn't set CURRENT_LAYOUT");
+    let layouts_shared = Arc::new(Mutex::new(vec!["us", "ru", "ua"]));
+    let current_layout_shared = Arc::new(Mutex::new("us"));
+
     tauri::Builder::default()
         .setup(move |app| {
             let handle = app.handle();
             let main_window = app.get_window("main").unwrap();
             let main_window_copy = app.get_window("main").unwrap();
 
+            let layout_clone1 = layouts_shared.clone();
+            let layout_clone2 = layouts_shared.clone();
+            let current_layout_clone1 = current_layout_shared.clone();
+            let current_layout_clone2 = current_layout_shared.clone();
             std::thread::spawn(move || {
-                // This will block.
                 if let Err(error) = listen(move |event: Event| {
                     if event.event_type == EventType::KeyRelease(Key::MetaLeft) {
-                        let mut layouts = LAYOUTS
-                            .get()
-                            .expect("Can't retrieve LAYOUTS")
-                            .lock()
-                            .unwrap();
-                        let current_layout = CURRENT_LAYOUT
-                            .get()
-                            .expect("Can't retriave CURRENT_LAYOUT")
-                            .lock()
-                            .unwrap();
+                        let mut layouts = layout_clone1.lock().unwrap();
+                        let current_layout = current_layout_clone1.lock().unwrap();
 
                         let current_layout_index_after_update =
                             utils::get_current_layout_index(&current_layout, &layouts);
@@ -71,16 +64,9 @@ fn main() {
                         main_window.show().expect("Failed");
                     }
 
-                    let layouts = LAYOUTS
-                        .get()
-                        .expect("Can't retrieve LAYOUTS")
-                        .lock()
+                    let layouts = layout_clone2.lock().unwrap();
                         .unwrap();
-                    let mut current_layout = CURRENT_LAYOUT
-                        .get()
-                        .expect("Can't retriave CURRENT_LAYOUT")
-                        .lock()
-                        .unwrap();
+                    let mut current_layout = current_layout_clone2.lock().unwrap();
                     let current_layout_index =
                         utils::get_current_layout_index(&current_layout, &layouts);
 
