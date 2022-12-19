@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback, useState } from "react";
 import cx from "classnames";
-import { listen } from "@tauri-apps/api/event";
+import { appWindow } from "@tauri-apps/api/window";
 
 const LANGS: any = {
   us: "ABC",
@@ -8,19 +8,31 @@ const LANGS: any = {
   ua: "Ukrainian",
 };
 
+const initialLayouts: string[] = [];
+
 function App() {
-  const [layouts, setLayouts] = useState<string[]>([]);
+  const [layouts, setLayouts] = useState<string[]>(initialLayouts);
   const [currentLayout, setCurrentLayout] = useState("en");
+
   const onWindowOpen = useCallback(async () => {
-    await listen("layoutChanged", (event: any) => {
-      setLayouts(JSON.parse(event.payload.layouts));
-      setCurrentLayout(event.payload.currentLayout);
+    await appWindow.listen("layouts-change", (event: any) =>
+      setLayouts(JSON.parse(event.payload.layouts))
+    );
+
+    await appWindow.listen("hide-window", (event: any) => {
+      setLayouts(initialLayouts);
     });
+
+    await appWindow.listen("current-layout-change", (event: any) =>
+      setCurrentLayout(event.payload.currentLayout)
+    );
   }, []);
 
   useEffect(() => {
     onWindowOpen();
   }, [onWindowOpen]);
+
+  if (!layouts.length) return null;
 
   return (
     <div className="container">

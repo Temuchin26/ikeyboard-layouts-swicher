@@ -11,14 +11,14 @@ use tauri::{GlobalShortcutManager, Manager};
 mod utils;
 
 #[derive(Clone, serde::Serialize)]
-struct Payload {
-    layouts: String,
+struct CurrentLayoutChangePayload {
     currentLayout: String,
 }
 
-
-
-
+#[derive(Clone, serde::Serialize)]
+struct LayoutsChangePayload {
+    layouts: String,
+}
 
 fn main() {
     let layouts_shared = Arc::new(Mutex::new(vec!["us", "ru", "ua"]));
@@ -29,11 +29,16 @@ fn main() {
             let handle = app.handle();
             let main_window = app.get_window("main").unwrap();
             let main_window_copy = app.get_window("main").unwrap();
-
+            #[cfg(debug_assertions)] // only include this code on debug builds
+            {
+                let window = app.get_window("main").unwrap();
+                window.open_devtools();
+            }
             let layout_clone1 = layouts_shared.clone();
             let layout_clone2 = layouts_shared.clone();
             let current_layout_clone1 = current_layout_shared.clone();
             let current_layout_clone2 = current_layout_shared.clone();
+
             std::thread::spawn(move || {
                 if let Err(error) = listen(move |event: Event| {
                     if event.event_type == EventType::KeyRelease(Key::MetaLeft) {
@@ -47,7 +52,17 @@ fn main() {
 
                         utils::apply_layouts(current_layout);
 
-                        main_window_copy.hide().expect("Failed");
+                        let layouts_copy = &*layouts;
+                        let json = serde_json::to_string(layouts_copy).unwrap();
+                        match main_window_copy.emit(
+                            "hide-window",
+                            LayoutsChangePayload {
+                                layouts: String::from(""),
+                            },
+                        ) {
+                            Ok(_) => main_window_copy.hide().expect("Failed to hide window"),
+                            Err(_) => panic!("Failed to emit layouts-change"),
+                        }
                     }
                 }) {
                     println!("Error: {:?}", error)
@@ -57,15 +72,23 @@ fn main() {
             handle
                 .global_shortcut_manager()
                 .register("Super+Space", move || {
+                    let layouts = layout_clone2.lock().unwrap();
                     let is_window_visible = main_window
                         .is_visible()
                         .expect("Failed to fetch is visible");
                     if is_window_visible == false {
-                        main_window.show().expect("Failed");
+                        match main_window.show() {
+                            Ok(_) => {
+                                let json = serde_json::to_string(&*layouts).unwrap();
+
+                                main_window
+                                    .emit("layouts-change", LayoutsChangePayload { layouts: json })
+                                    .unwrap();
+                            }
+                            Err(_) => panic!("Failed to open window"),
+                        }
                     }
 
-                    let layouts = layout_clone2.lock().unwrap();
-                        .unwrap();
                     let mut current_layout = current_layout_clone2.lock().unwrap();
                     let current_layout_index =
                         utils::get_current_layout_index(&current_layout, &layouts);
@@ -76,14 +99,10 @@ fn main() {
                         *current_layout = layouts[current_layout_index + 1];
                     }
 
-                    let layouts_copy = &*layouts;
-                    let json = serde_json::to_string(layouts_copy).unwrap();
-
-                    handle
-                        .emit_all(
-                            "layoutChanged",
-                            Payload {
-                                layouts: json,
+                    main_window
+                        .emit(
+                            "current-layout-change",
+                            CurrentLayoutChangePayload {
                                 currentLayout: String::from(*current_layout),
                             },
                         )
