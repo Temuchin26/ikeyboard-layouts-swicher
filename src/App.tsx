@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback, useState } from "preact/hooks";
 import cx from "classnames";
 import { appWindow } from "@tauri-apps/api/window";
 
