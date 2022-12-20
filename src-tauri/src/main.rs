@@ -29,11 +29,7 @@ fn main() {
             let handle = app.handle();
             let main_window = app.get_window("main").unwrap();
             let main_window_copy = app.get_window("main").unwrap();
-            #[cfg(debug_assertions)] // only include this code on debug builds
-            {
-                let window = app.get_window("main").unwrap();
-                window.open_devtools();
-            }
+            
             let layout_clone1 = layouts_shared.clone();
             let layout_clone2 = layouts_shared.clone();
             let current_layout_clone1 = current_layout_shared.clone();
